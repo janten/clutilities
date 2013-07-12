@@ -1,5 +1,5 @@
 /*
- * clInfo.c --
+ * clinfo.c --
  *
  *      Program to enumerate and dump all of the OpenCL information for a
  *      machine (or at least for a specific run-time).
