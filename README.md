@@ -7,13 +7,15 @@ clhelper
 --------
 Include this header to easily create a global OpenCL context and run your kernels there. Example usage:
 
-	initOpenCL();
-	cl_program program = buildCLProgram("source.cl");
-	cl_kernel  kernel  = buildCLKernel(program, "myKernel");
-	cl_int     status  = enqueueCLKernel(kernel, 1024);
-	showCLError(status);
-	waitForCLOperations();
-	releaseCLHelper();
+```OpenCL
+initOpenCL();
+cl_program program = buildCLProgram("source.cl");
+cl_kernel  kernel  = buildCLKernel(program, "myKernel");
+cl_int     status  = enqueueCLKernel(kernel, 1024);
+showCLError(status);
+waitForCLOperations();
+releaseCLHelper();
+```
 
 A simple simulation for the n-body problem using the leapfrog integration scheme is included.
 
