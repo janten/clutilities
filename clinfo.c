@@ -138,7 +138,6 @@ CLErrString(cl_int status) {
 static void
 PrintDevice(cl_device_id device) {
 #define LONG_PROPS \
-  defn(VENDOR_ID), \
   defn(MAX_COMPUTE_UNITS), \
   defn(MAX_WORK_ITEM_DIMENSIONS), \
   defn(MAX_WORK_GROUP_SIZE), \
@@ -184,7 +183,8 @@ PrintDevice(cl_device_id device) {
 
 #define HEX_PROPS \
    defn(SINGLE_FP_CONFIG), \
-   defn(QUEUE_PROPERTIES),
+   defn(QUEUE_PROPERTIES), \
+   defn(VENDOR_ID),
 
 
 /* XXX For completeness, it'd be nice to dump this one, too. */
