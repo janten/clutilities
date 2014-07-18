@@ -16,12 +16,6 @@
 //      waitForCLOperations();
 //      releaseCLHelper();
 
-#ifndef ncl_clhelper_h
-#define ncl_clhelper_h
-
-#include <assert.h>
-#include <iostream>
-
 #if defined __APPLE__ || defined(MACOSX)
     #include <OpenCL/opencl.h>
 #else
@@ -29,14 +23,20 @@
 #endif
 
 const char* clErrorString(cl_int error);
-void showCLError (cl_int error);
+cl_int showCLError (cl_int error);
 
 // Use one global queue
 cl_command_queue queue;
 cl_context context;
 cl_device_id device = 0;
 
-// Load file contents, internal use only
+/**
+ *  Get file contents.
+ *
+ *  @param fname Path to file that will be opened
+ *
+ *  @return The contents of the file at the specified path
+ */
 const char* loadFile(const char *fname) {
     FILE * f = fopen (fname, "r");
     if (!f) { printf("loadFile: couldn't open %s\n", fname); exit(1); }
@@ -50,7 +50,15 @@ const char* loadFile(const char *fname) {
     return (const char *) buf;
 }
 
-// Perform a blocking write to the given memory buffer
+/**
+ *  Perform a blocking write operation to the given buffer.
+ *
+ *  @param data   A pointer to the data to be copied, in host memory
+ *  @param bytes  Amount of data in bytes to be copied
+ *  @param buffer Target buffer where the data will be copied to
+ *
+ *  @return OpenCL error value
+ */
 cl_int writeDataToCLBuffer (void *data, size_t bytes, cl_mem buffer) {
     cl_int error = CL_SUCCESS;
     printf("Performing blocking write of %lu bytes of data from %p\n", bytes, data);
@@ -59,7 +67,15 @@ cl_int writeDataToCLBuffer (void *data, size_t bytes, cl_mem buffer) {
     return error;
 }
 
-// Read data from given buffer. Will block program execution until successful.
+/**
+ *  Perform a blocking read operation from the given buffer.
+ *
+ *  @param data   A pointer in host memory
+ *  @param bytes  Amount of data in bytes to be copied
+ *  @param buffer Source buffer where the data will be copied from
+ *
+ *  @return OpenCL error value
+ */
 cl_int readDataFromCLBuffer (void *data, size_t bytes, cl_mem buffer) {
     cl_int error = CL_SUCCESS;
     printf("Performing blocking read of %lu bytes of data to %p\n", bytes, data);
@@ -68,7 +84,13 @@ cl_int readDataFromCLBuffer (void *data, size_t bytes, cl_mem buffer) {
     return error;
 }
 
-// Create an OpenCL memory buffer of given size.
+/**
+ *  Create a buffer object.
+ *
+ *  @param bufferSizeInBytes Desired size of the buffer in bytes
+ *
+ *  @return A buffer object
+ */
 cl_mem createCLBuffer (size_t bufferSizeInBytes) {
     cl_int error = CL_SUCCESS;
 	cl_mem univ = clCreateBuffer(context, CL_MEM_READ_WRITE, bufferSizeInBytes, NULL, &error);
@@ -76,7 +98,15 @@ cl_mem createCLBuffer (size_t bufferSizeInBytes) {
     return univ;
 }
 
-// Compile OpenCL C source file into a cl_program with given defines
+/**
+ *  Build a OpenCL program by compiling the source code from the specified file
+ *  using the given defines.
+ *
+ *  @param filename Path to the kernel source file
+ *  @param defines  Custom defines to use during compilation. May be NULL.
+ *
+ *  @return A program
+ */
 cl_program buildCLProgram (const char* filename, const char* defines) {
     cl_int error = CL_SUCCESS;
 	const char* source = loadFile(filename);
@@ -91,12 +121,14 @@ cl_program buildCLProgram (const char* filename, const char* defines) {
     return program;
 }
 
-// Convenience method to call buildCLProgram if no defines are needed
-cl_program buildCLProgram (const char* filename) {
-    return buildCLProgram(filename, "");
-}
-
-// Build a kernel with given name contained in given program
+/**
+ *  Build a kernel that is part of the given program.
+ *
+ *  @param program    The program which contains the kernel
+ *  @param kernelName The name of the kernel
+ *
+ *  @return A kernel object
+ */
 cl_kernel buildCLKernel (cl_program program, const char* kernelName) {
     cl_int error = CL_SUCCESS;
     cl_kernel kernel = clCreateKernel (program, kernelName, &error);
@@ -104,7 +136,14 @@ cl_kernel buildCLKernel (cl_program program, const char* kernelName) {
     return kernel;
 }
 
-// Execute a given kernel with a given global work size.
+/**
+ *  Enqueue a given kernel for execution
+ *
+ *  @param kernel         The kernel to be executed
+ *  @param globalWorkSize The amount of threads to be run
+ *
+ *  @return An error value
+ */
 cl_int enqueueCLKernel (cl_kernel kernel, const size_t globalWorkSize) {
     cl_int error = CL_SUCCESS;
     error = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &globalWorkSize, NULL, 0, NULL, NULL);
@@ -112,27 +151,43 @@ cl_int enqueueCLKernel (cl_kernel kernel, const size_t globalWorkSize) {
     return error;
 }
 
-// Wait for all pending OpenCL operations to finish
+
+/**
+ *  Block the execution of host code until all OpenCL operations have finished.
+ *
+ *  @return An error value
+ */
 cl_int waitForCLOperations () {
     cl_int error = clFinish(queue);
 	showCLError(error);
     return error;
 }
 
-// Get the build log for a given cl_program
+/**
+ *  Retrieve the build log for a program
+ *
+ *  @param program The program to retrieve the build log for
+ *
+ *  @return The log
+ */
 char* buildLogForCLProgram(cl_program program) {
 	char* out = (char *)malloc(sizeof(char)*1024*64);
 	clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, sizeof(char)*1024*64, out, NULL);
     return out;
 }
 
-// Destroy command queue and context
+/**
+ *  Release internal resources
+ */
 void releaseCLHelper () {
     clReleaseCommandQueue(queue);
     clReleaseContext(context);
 }
 
-// Initialize a global OpenCL context for the first GPU found
+
+/**
+ *  Initialize globally used resources
+ */
 void initOpenCL() {
 	cl_int error = 0;   // Used to handle error codes
 	cl_platform_id platform;
@@ -156,24 +211,28 @@ void initOpenCL() {
 	printf("Command queue created!\n");
 }
 
-// Display OpenCL error and optionally assert error == CL_SUCCESS
-inline void showCLError (cl_int error, bool assert) {
-    if (error == CL_SUCCESS) {
-        return;
+/**
+ *  Display information about the given error code in human readable form.
+ *
+ *  @param error An OpenCL error value
+ *
+ *  @return The input value, for convenience
+ */
+inline cl_int showCLError (cl_int error) {
+    if (error != CL_SUCCESS) {
+		printf("OpenCL Error: %s\n", clErrorString(error));
     }
-    printf("OpenCL Error: %s\n", clErrorString(error));
     
-    if (assert) {
-        assert (error == CL_SUCCESS);
-    }
+    return error;
 }
 
-// Convenience method to call showCLError without assertion
-inline void showCLError (cl_int error) {
-    showCLError(error, false);
-}
-
-// Get string representation of OpenCL error code
+/**
+ *  Return a human readable string representation for common error values.
+ *
+ *  @param error An OpenCL error code
+ *
+ *  @return The error code's readable name
+ */
 const char* clErrorString(cl_int error) {
     static const char* errorString[] = {
         "CL_SUCCESS",
@@ -246,6 +305,3 @@ const char* clErrorString(cl_int error) {
     const int index = -error;
     return (index >= 0 && index < errorCount) ? errorString[index] : "";
 }
-
-
-#endif
